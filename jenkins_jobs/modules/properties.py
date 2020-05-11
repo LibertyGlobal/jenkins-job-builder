@@ -521,6 +521,8 @@ def authorization(registry, xml_parent, data):
     # get the folder name if it exists
     in_a_folder = data.pop("_use_folder_perms", None) if data else None
 
+    is_a_folder = data['project-type'] == 'folder'
+
     credentials = "com.cloudbees.plugins.credentials.CredentialsProvider."
     ownership = "com.synopsys.arc.jenkins.plugins.ownership.OwnershipPlugin."
 
@@ -549,9 +551,13 @@ def authorization(registry, xml_parent, data):
 
     if data:
         if in_a_folder:
+            if is_a_folder:
+                element_name = "com.cloudbees.hudson.plugins.folder.properties.AuthorizationMatrixProperty"
+            else:
+                element_name = "hudson.security.AuthorizationMatrixProperty"
             matrix = XML.SubElement(
                 xml_parent,
-                "com.cloudbees.hudson.plugins.folder.properties.AuthorizationMatrixProperty",
+                element_name,
             )
             XML.SubElement(
                 matrix,
