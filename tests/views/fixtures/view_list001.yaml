@@ -21,12 +21,14 @@ columns:
     - find-bugs
     - jacoco
     - git-branch
+    - favorite
     - schedule-build
     - priority-sorter
     - build-filter
     - desc
     - policy-violations
     - member-graph-view
+    - built-on
     - extra-tests-total
     - extra-tests-failed
     - extra-tests-passed

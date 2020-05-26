@@ -239,6 +239,7 @@ COLUMN_DICT = {
     "find-bugs": "hudson.plugins.findbugs.FindBugsColumn",
     "jacoco": "hudson.plugins.jacococoveragecolumn.JaCoCoColumn",
     "git-branch": "hudson.plugins.git.GitBranchSpecifierColumn",
+    "favorite": "hudson.plugins.favorite.column.FavoriteColumn",
     "schedule-build": "org.jenkinsci.plugins.schedulebuild.ScheduleBuildButtonColumn",
     "priority-sorter": "jenkins.advancedqueue.PrioritySorterJobColumn",
     "build-filter": "hudson.views.BuildFilterColumn",
@@ -247,6 +248,9 @@ COLUMN_DICT = {
     'plugin="sonatype-clm-ci"',
     "member-graph-view": "com.barchart.jenkins.cascade.GraphViewColumn "
     'plugin="maven-release-cascade"',
+    "built-on": [
+        ["org.jenkins.plugins.builton.BuiltOnColumn", {"plugin": "built-on-column"}]
+    ],
     "extra-tests-total": [
         ["jenkins.plugins.extracolumns.TestResultColumn", {"plugin": "extra-columns"}],
         "<testResultFormat>2</testResultFormat>",
