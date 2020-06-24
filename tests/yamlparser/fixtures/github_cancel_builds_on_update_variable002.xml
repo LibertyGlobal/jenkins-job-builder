@@ -14,6 +14,7 @@
       <adminlist/>
       <whitelist/>
       <orgslist/>
+      <blackListCommitAuthor/>
       <whiteListLabels/>
       <blackListLabels/>
       <excludedRegions/>
@@ -27,6 +28,7 @@
       <useGitHubHooks>false</useGitHubHooks>
       <permitAll>false</permitAll>
       <autoCloseFailedPullRequests>false</autoCloseFailedPullRequests>
+      <displayBuildErrorsOnDownstreamBuilds>false</displayBuildErrorsOnDownstreamBuilds>
     </org.jenkinsci.plugins.ghprb.GhprbTrigger>
   </triggers>
   <builders/>
