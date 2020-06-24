@@ -1172,6 +1172,8 @@ def github_pull_request(registry, xml_parent, data):
         in the pull request will trigger a build (default false)
     :arg str skip-build-phrase: when filled, adding this phrase to
         the pull request title or body will not trigger a build (optional)
+    :arg list black-list-commit-author: When filled, pull request commits from this user(s)
+        will not trigger a build (optional)
     :arg str black-list-labels: list of GitHub labels for which the build
         should not be triggered (optional)
     :arg str white-list-labels: list of GitHub labels for which the build
@@ -1180,6 +1182,8 @@ def github_pull_request(registry, xml_parent, data):
     :arg bool permit-all: build every pull request automatically
         without asking (default false)
     :arg bool auto-close-on-fail: close failed pull request automatically
+        (default false)
+    :arg bool display-build-errors-on-downstream-builds: Display build errors on downstream builds
         (default false)
     :arg list white-list-target-branches: Adding branches to this whitelist
         allows you to selectively test pull requests destined for these
@@ -1215,6 +1219,9 @@ def github_pull_request(registry, xml_parent, data):
         (optional)
     :arg bool cancel-builds-on-update: cancel existing builds when a PR is
         updated (optional)
+    :arg str comment-file: Extends the standard build comment message on
+        github with a custom message file. (optional)
+    :arg bool no-commit-status: Enables "Do not update commit status"
     :arg list included-regions: Each inclusion uses regular expression pattern
         matching, and must be separated by a new line. An empty list implies
         that everything is included. (optional)
@@ -1250,6 +1257,11 @@ def github_pull_request(registry, xml_parent, data):
         ("github-hooks", "useGitHubHooks", False),
         ("permit-all", "permitAll", False),
         ("auto-close-on-fail", "autoCloseFailedPullRequests", False),
+        (
+            "display-build-errors-on-downstream-builds",
+            "displayBuildErrorsOnDownstreamBuilds",
+            False,
+        ),
     ]
     admin_string = "\n".join(data.get("admin-list", []))
     XML.SubElement(ghprb, "adminlist").text = admin_string
@@ -1257,6 +1269,10 @@ def github_pull_request(registry, xml_parent, data):
     XML.SubElement(ghprb, "whitelist").text = white_string
     org_string = "\n".join(data.get("org-list", []))
     XML.SubElement(ghprb, "orgslist").text = org_string
+    black_list_commit_author_string = " ".join(data.get("black-list-commit-author", ""))
+    XML.SubElement(
+        ghprb, "blackListCommitAuthor"
+    ).text = black_list_commit_author_string
     white_list_labels_string = "\n".join(data.get("white-list-labels", []))
     XML.SubElement(ghprb, "whiteListLabels").text = white_list_labels_string
     black_list_labels_string = "\n".join(data.get("black-list-labels", []))
@@ -1330,9 +1346,18 @@ def github_pull_request(registry, xml_parent, data):
         str(data.get("cancel-builds-on-update", False)).lower() == "true"
     )
 
+    comment_file = data.get("comment-file", "")
+    no_commit_status = data.get("no-commit-status", False)
+
     # We want to have only one 'extensions' subelement, even if status
     # handling, comment handling and other extensions are enabled.
-    if requires_status or requires_job_comment or cancel_builds_on_update:
+    if (
+        requires_status
+        or requires_job_comment
+        or cancel_builds_on_update
+        or comment_file
+        or no_commit_status
+    ):
         extensions = XML.SubElement(ghprb, "extensions")
 
     # Both comment and status elements have this same type.  Using a const is
@@ -1402,6 +1427,20 @@ def github_pull_request(registry, xml_parent, data):
         XML.SubElement(
             extensions,
             "org.jenkinsci.plugins.ghprb.extensions." "build.GhprbCancelBuildsOnUpdate",
+        )
+
+    if comment_file:
+        comment_file_tag = XML.SubElement(
+            extensions,
+            "org.jenkinsci.plugins.ghprb.extensions." "comments.GhprbCommentFile",
+        )
+        comment_file_path_elem = XML.SubElement(comment_file_tag, "commentFilePath")
+        comment_file_path_elem.text = str(comment_file)
+
+    if no_commit_status:
+        XML.SubElement(
+            extensions,
+            "org.jenkinsci.plugins.ghprb.extensions." "status.GhprbNoCommitStatus",
         )
 
 

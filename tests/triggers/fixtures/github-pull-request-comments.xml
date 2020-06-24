@@ -8,6 +8,7 @@ user2</adminlist>
 user4</whitelist>
       <orgslist>org1
 org2</orgslist>
+      <blackListCommitAuthor/>
       <whiteListLabels/>
       <blackListLabels/>
       <excludedRegions/>
@@ -21,6 +22,7 @@ org2</orgslist>
       <useGitHubHooks>true</useGitHubHooks>
       <permitAll>false</permitAll>
       <autoCloseFailedPullRequests>false</autoCloseFailedPullRequests>
+      <displayBuildErrorsOnDownstreamBuilds>false</displayBuildErrorsOnDownstreamBuilds>
       <extensions>
         <org.jenkinsci.plugins.ghprb.extensions.comments.GhprbBuildStatus>
           <messages>
