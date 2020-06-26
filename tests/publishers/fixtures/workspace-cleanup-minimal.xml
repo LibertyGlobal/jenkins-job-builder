@@ -4,6 +4,7 @@
     <hudson.plugins.ws__cleanup.WsCleanup plugin="ws-cleanup">
       <deleteDirs>false</deleteDirs>
       <cleanupMatrixParent>false</cleanupMatrixParent>
+      <skipWhenFailed>false</skipWhenFailed>
       <externalDelete/>
       <disableDeferredWipeout>false</disableDeferredWipeout>
       <cleanWhenSuccess>true</cleanWhenSuccess>

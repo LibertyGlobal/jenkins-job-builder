@@ -14,6 +14,7 @@
       </patterns>
       <deleteDirs>true</deleteDirs>
       <cleanupMatrixParent>true</cleanupMatrixParent>
+      <skipWhenFailed>true</skipWhenFailed>
       <externalDelete>command</externalDelete>
       <disableDeferredWipeout>true</disableDeferredWipeout>
       <cleanWhenSuccess>false</cleanWhenSuccess>

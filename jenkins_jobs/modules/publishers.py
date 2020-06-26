@@ -3657,6 +3657,7 @@ def workspace_cleanup(registry, xml_parent, data):
             * **not-built** (`bool`)  (default true)
     :arg bool fail-build: Fail the build if the cleanup fails (default true)
     :arg bool clean-parent: Cleanup matrix parent workspace (default false)
+    :arg bool skip-when-failed: Don't fail the build if cleanup fails (default false)
     :arg str external-deletion-command: external deletion command to run
         against files and directories
     :arg bool disable-deferred-wipeout: Disable improved deferred wipeout
@@ -3693,6 +3694,7 @@ def workspace_cleanup(registry, xml_parent, data):
     mappings = [
         ("dirmatch", "deleteDirs", False),
         ("clean-parent", "cleanupMatrixParent", False),
+        ("skip-when-failed", "skipWhenFailed", False),
         ("external-deletion-command", "externalDelete", ""),
         ("disable-deferred-wipeout", "disableDeferredWipeout", False),
     ]

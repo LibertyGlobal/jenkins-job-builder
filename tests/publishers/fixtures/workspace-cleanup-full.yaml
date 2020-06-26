@@ -13,5 +13,6 @@ publishers:
       dirmatch: true
       fail-build: false
       clean-parent: true
+      skip-when-failed: true
       external-deletion-command: 'command'
       disable-deferred-wipeout: true
