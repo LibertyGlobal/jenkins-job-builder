@@ -11,6 +11,9 @@
   <scm class="hudson.scm.NullSCM"/>
   <triggers class="vector">
     <org.jenkinsci.plugins.ghprb.GhprbTrigger>
+      <configVersion>3</configVersion>
+      <spec/>
+      <cron/>
       <adminlist/>
       <whitelist/>
       <orgslist/>
@@ -19,9 +22,8 @@
       <blackListLabels/>
       <excludedRegions/>
       <includedRegions/>
-      <spec/>
+      <buildDescTemplate/>
       <allowMembersOfWhitelistedOrgsAsAdmin>false</allowMembersOfWhitelistedOrgsAsAdmin>
-      <cron/>
       <triggerPhrase/>
       <skipBuildPhrase/>
       <onlyTriggerPhrase>false</onlyTriggerPhrase>
@@ -29,6 +31,8 @@
       <permitAll>false</permitAll>
       <autoCloseFailedPullRequests>false</autoCloseFailedPullRequests>
       <displayBuildErrorsOnDownstreamBuilds>false</displayBuildErrorsOnDownstreamBuilds>
+      <whiteListTargetBranches/>
+      <blackListTargetBranches/>
       <extensions>
         <org.jenkinsci.plugins.ghprb.extensions.build.GhprbCancelBuildsOnUpdate/>
       </extensions>
