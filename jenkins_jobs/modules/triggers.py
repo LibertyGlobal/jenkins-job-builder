@@ -1247,13 +1247,11 @@ def github_pull_request(registry, xml_parent, data):
     """
     ghprb = XML.SubElement(xml_parent, "org.jenkinsci.plugins.ghprb." "GhprbTrigger")
     mapping = [
-        ("cron", "spec", ""),
         (
             "allow-whitelist-orgs-as-admins",
             "allowMembersOfWhitelistedOrgsAsAdmin",
             False,
         ),
-        ("cron", "cron", ""),
         ("trigger-phrase", "triggerPhrase", ""),
         ("skip-build-phrase", "skipBuildPhrase", ""),
         ("only-trigger-phrase", "onlyTriggerPhrase", False),
@@ -1266,6 +1264,10 @@ def github_pull_request(registry, xml_parent, data):
             False,
         ),
     ]
+    XML.SubElement(ghprb, "configVersion").text = "3"
+    cron_string = data.get("cron", "") or ""
+    XML.SubElement(ghprb, "spec").text = cron_string
+    XML.SubElement(ghprb, "cron").text = cron_string
     admin_string = "\n".join(data.get("admin-list", []))
     XML.SubElement(ghprb, "adminlist").text = admin_string
     white_string = "\n".join(data.get("white-list", []))
@@ -1288,11 +1290,13 @@ def github_pull_request(registry, xml_parent, data):
     build_desc_template = data.get("build-desc-template", "")
     if build_desc_template:
         XML.SubElement(ghprb, "buildDescTemplate").text = str(build_desc_template)
+    else:
+        XML.SubElement(ghprb, "buildDescTemplate")
 
     helpers.convert_mapping_to_xml(ghprb, data, mapping, fail_required=False)
     white_list_target_branches = data.get("white-list-target-branches", [])
+    ghprb_wltb = XML.SubElement(ghprb, "whiteListTargetBranches")
     if white_list_target_branches:
-        ghprb_wltb = XML.SubElement(ghprb, "whiteListTargetBranches")
         for branch in white_list_target_branches:
             be = XML.SubElement(
                 ghprb_wltb, "org.jenkinsci.plugins." "ghprb.GhprbBranch"
@@ -1300,8 +1304,8 @@ def github_pull_request(registry, xml_parent, data):
             XML.SubElement(be, "branch").text = str(branch)
 
     black_list_target_branches = data.get("black-list-target-branches", [])
+    ghprb_bltb = XML.SubElement(ghprb, "blackListTargetBranches")
     if black_list_target_branches:
-        ghprb_bltb = XML.SubElement(ghprb, "blackListTargetBranches")
         for branch in black_list_target_branches:
             be = XML.SubElement(
                 ghprb_bltb, "org.jenkinsci.plugins." "ghprb.GhprbBranch"
@@ -1317,7 +1321,7 @@ def github_pull_request(registry, xml_parent, data):
     triggered_status = data.get("triggered-status", "")
     started_status = data.get("started-status", "")
     status_url = data.get("status-url", "")
-    status_add_test_results = data.get("status-add-test-results", "")
+    status_add_test_results = data.get("status-add-test-results", False)
     success_status = data.get("success-status", "")
     failure_status = data.get("failure-status", "")
     error_status = data.get("error-status", "")
@@ -1374,22 +1378,24 @@ def github_pull_request(registry, xml_parent, data):
             extensions,
             "org.jenkinsci.plugins" ".ghprb.extensions.status." "GhprbSimpleStatus",
         )
+        commit_status_context_element = XML.SubElement(
+            simple_status, "commitStatusContext"
+        )
+        triggered_status_element = XML.SubElement(simple_status, "triggeredStatus")
+        started_status_element = XML.SubElement(simple_status, "startedStatus")
+        status_url_element = XML.SubElement(simple_status, "statusUrl")
         if status_context:
-            XML.SubElement(simple_status, "commitStatusContext").text = str(
-                status_context
-            )
+            commit_status_context_element.text = str(status_context)
         if triggered_status:
-            XML.SubElement(simple_status, "triggeredStatus").text = str(
-                triggered_status
-            )
+            triggered_status_element.text = str(triggered_status)
         if started_status:
-            XML.SubElement(simple_status, "startedStatus").text = str(started_status)
+            started_status_element.text = str(started_status)
         if status_url:
-            XML.SubElement(simple_status, "statusUrl").text = str(status_url)
-        if status_add_test_results:
-            XML.SubElement(simple_status, "addTestResults").text = str(
-                status_add_test_results
-            ).lower()
+            status_url_element.text = str(status_url)
+
+        XML.SubElement(simple_status, "addTestResults").text = str(
+            status_add_test_results
+        ).lower()
 
         if requires_status_message:
             completed_elem = XML.SubElement(simple_status, "completedStatus")
