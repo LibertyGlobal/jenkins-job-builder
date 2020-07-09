@@ -4607,7 +4607,7 @@ def robot(registry, xml_parent, data):
         checking the thresholds (default true)
     :arg list other-files: list other files to archive (default '')
     :arg bool archive-output-xml: Archive output xml file to server
-        (default true)
+        (default false)
     :arg bool enable-cache: Enable cache for test results (default true)
 
     Minimal Example:
@@ -4639,7 +4639,7 @@ def robot(registry, xml_parent, data):
     for other_file in data.get("other-files", []):
         XML.SubElement(other_files, "string").text = str(other_file)
     XML.SubElement(parent, "disableArchiveOutput").text = str(
-        not data.get("archive-output-xml", True)
+        data.get("archive-output-xml", False)
     ).lower()
 
 
