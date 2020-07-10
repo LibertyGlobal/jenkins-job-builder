@@ -97,6 +97,7 @@ class Pipeline(jenkins_jobs.modules.base.Base):
                     "plugin": "workflow-cps",
                 },
             )
+            XML.SubElement(xml_definition, "script").text = data["dsl"]
         elif "pipeline-scm" in data:
             xml_definition = XML.SubElement(
                 xml_parent,
