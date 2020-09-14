@@ -386,7 +386,7 @@ class BaseYAMLObject(YAMLObject):
     yaml_dumper = LocalDumper
 
 
-class J2Yaml(YAMLObject):
+class J2Yaml(BaseYAMLObject):
     yaml_tag = u"!j2-yaml:"
 
     @classmethod
@@ -597,11 +597,25 @@ class Jinja2Loader(CustomLoader):
         self._template.environment.loader = self._loader
         return self._template.render(kwargs)
 
+    def get_object_to_format(self):
+        return self
+
+
+class LateYamlLoader(CustomLoader):
+    """A loader for data rendered via Jinja2, to be loaded as YAML and then deep formatted."""
+
+    def __init__(self, yaml_str, loader):
+        self._yaml_str = yaml_str
+        self._loader = loader
+
+    def get_object_to_format(self):
+        return load(self._yaml_str, search_path=self._loader._search_path)
+
 
 class Jinja2YamlLoader(Jinja2Loader):
     def format(self, **kwargs):
         yaml_str = super(Jinja2YamlLoader, self).format(**kwargs)
-        return load(yaml_str)
+        return LateYamlLoader(yaml_str, self)
 
 
 class CustomLoaderCollection(object):
