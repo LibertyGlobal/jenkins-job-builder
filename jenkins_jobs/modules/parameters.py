@@ -1143,8 +1143,8 @@ def param_separator(registry, xml_parent, data):
     helpers.convert_mapping_to_xml(pdef, data, mapping, fail_required=True)
 
 
-def __handle_unochoice_script(data, pdef, script_type):
-    main_script_xml = XML.SubElement(pdef, "script")
+def __handle_unochoice_script(data, pdef, script_type, main_script_xml):
+
     if script_type == "script":
         secure_script_xml = XML.SubElement(main_script_xml, "secureScript")
     elif script_type == "fallback-script":
@@ -1155,7 +1155,7 @@ def __handle_unochoice_script(data, pdef, script_type):
 
     script = data.get(script_type, {})
     sub_script_xml.text = script.get("groovy", "")
-    groovy_sandbox_xml.text = str(script.get("use-groovy-sandbox", False)).lower()
+    groovy_sandbox_xml.text = str(script.get("use-groovy-sandbox", True)).lower()
 
     if "script-additional-classpath" in script:
         classpath_xml = XML.SubElement(secure_script_xml, "classpath")
@@ -1179,7 +1179,7 @@ def active_choices_param(registry, xml_parent, data):
         :Parameter: * **groovy** (`str`) Groovy DSL Script
                     * **use-groovy-sandbox** (`bool`) To run this
                         Groovy script in a sandbox with limited abilities
-                        (default False)
+                        (default True)
                     * **script-additional-classpath** (`list`) Additional
                         classpath entries accessible from the script.
     :arg list fallback-script: Use a Fallback script. If the script
@@ -1188,7 +1188,7 @@ def active_choices_param(registry, xml_parent, data):
         :Parameter: * **groovy** (`str`) Groovy DSL Script
                     * **use-groovy-sandbox** (`bool`) To run this Groovy
                         script in a sandbox with limited abilities.
-                        (default False  )
+                        (default True)
                     * **script-additional-classpath** (`list`) Additional
                         classpath entries accessible from the script.
     :arg bool enable-filters: If enabled a text box will appear next to
@@ -1203,35 +1203,17 @@ def active_choices_param(registry, xml_parent, data):
                     * **radio-buttons**
                     * **checkboxes**
 
-    Example::
+    Minimal Example:
 
-      parameters:
-        - active-choices:
-            name: lorem
-            description: ipsum
-            script:
-                groovy: |-
-                    return [
-                        'param1',
-                        'param2'
-                    ]
-                use-groovy-sandbox: true
-                script-additional-classpath:
-                    - file:/jar-file-path
-                    - file:/jar-file-path2
-            fallback-script:
-                groovy: |-
-                    return [
-                        'param3',
-                        'param4'
-                    ]
-                use-groovy-sandbox: true
-                script-additional-classpath:
-                    - file:/jar-file-path
-                    - file:/jar-file-path2
-            choice-type: multi-select
-            enable-filters: False
-            filter-starts-at: 1
+    .. literalinclude::
+        /../../tests/yamlparser/fixtures/active-choices-param001.yaml
+       :language: yaml
+
+    Full Example:
+
+    .. literalinclude::
+        /../../tests/yamlparser/fixtures/active-choices-param002.yaml
+       :language: yaml
     """
     element_name = "org.biouno.unochoice.ChoiceParameter"
     pdef = XML.SubElement(xml_parent, element_name)
@@ -1246,15 +1228,17 @@ def active_choices_param(registry, xml_parent, data):
     mapping = [
         ("name", "name", None),
         ("description", "description", ""),
-        ("choice-type", "choiceType", "PT_SINGLE_SELECT", valid_choice_types_dict),
+        ("choice-type", "choiceType", "single-select", valid_choice_types_dict),
         ("enable-filters", "filterable", False),
         ("filter-starts-at", "filterLength", 1),
         ("_project-name", "projectName", None),
         ("_project-full-name", "projectFullName", None),
     ]
 
-    __handle_unochoice_script(data, pdef, "script")
-    __handle_unochoice_script(data, pdef, "fallback-script")
+    main_script_xml = XML.SubElement(pdef, "script")
+    main_script_xml.set("class", "org.biouno.unochoice.model.GroovyScript")
+    __handle_unochoice_script(data, pdef, "fallback-script", main_script_xml)
+    __handle_unochoice_script(data, pdef, "script", main_script_xml)
 
     helpers.convert_mapping_to_xml(pdef, data, mapping, fail_required=True)
 
@@ -1273,6 +1257,7 @@ def dynamic_reference_param(registry, xml_parent, data):
         :Parameter: * **groovy** (`str`) Groovy DSL Script
                     * **use-groovy-sandbox** (`bool`) To run this
                         Groovy script in a sandbox with limited abilities
+                        (default True)
                     * **script-additional-classpath** (`list`) Additional
                         classpath entries accessible from the script.
     :arg list fallback-script: Use a Fallback script. If the script
@@ -1281,12 +1266,13 @@ def dynamic_reference_param(registry, xml_parent, data):
         :Parameter: * **groovy** (`str`) Groovy DSL Script
                     * **use-groovy-sandbox** (`bool`) To run this Groovy
                         script in a sandbox with limited abilities.
+                        (default True)
                     * **script-additional-classpath** (`list`) Additional
                         classpath entries accessible from the script.
     :arg bool omit-value-field: By default Dynamic Reference Parameters always
         include a hidden input for the value. If your script creates an input
         HTML element, you can check this option and the value input field will
-        be omitted.
+        be omitted (default False).
     :arg str referenced-parameters: Comma separated list of other job
          parameters referenced in the uno-choice script. When any of the
          referenced parameters are updated, the Groovy script will
@@ -1300,35 +1286,17 @@ def dynamic_reference_param(registry, xml_parent, data):
                     * **formatted-html**
                     * **formatted-hidden-html**
 
-    Example::
+    Minimal Example:
 
-      parameters:
-        - dynamic-reference:
-            name: lorem
-            description: ipsum
-            script:
-                groovy: |-
-                    return [
-                        'param1',
-                        'param2'
-                    ]
-                use-groovy-sandbox: true
-                script-additional-classpath:
-                    - file:/jar-file-path
-                    - file:/jar-file-path2
-            fallback-script:
-                groovy: |-
-                    return [
-                        'param3',
-                        'param4'
-                    ]
-                use-groovy-sandbox: true
-                script-additional-classpath:
-                    - file:/jar-file-path
-                    - file:/jar-file-path2
-            referenced-parameters: param1, param2
-            choice-type: numbered-list
-            omit-value-field: False
+    .. literalinclude::
+        /../../tests/yamlparser/fixtures/dynamic-reference-param001.yaml
+       :language: yaml
+
+    Full Example:
+
+    .. literalinclude::
+        /../../tests/yamlparser/fixtures/dynamic-reference-param002.yaml
+       :language: yaml
     """
     element_name = "org.biouno.unochoice.DynamicReferenceParameter"
     pdef = XML.SubElement(xml_parent, element_name)
@@ -1351,8 +1319,10 @@ def dynamic_reference_param(registry, xml_parent, data):
         ("omit-value-field", "omitValueField", False),
     ]
 
-    __handle_unochoice_script(data, pdef, "script")
-    __handle_unochoice_script(data, pdef, "fallback-script")
+    main_script_xml = XML.SubElement(pdef, "script")
+    main_script_xml.set("class", "org.biouno.unochoice.model.GroovyScript")
+    __handle_unochoice_script(data, pdef, "fallback-script", main_script_xml)
+    __handle_unochoice_script(data, pdef, "script", main_script_xml)
 
     XML.SubElement(pdef, "parameters")  # Empty parameters tag
 

@@ -13,18 +13,40 @@
         <org.biouno.unochoice.ChoiceParameter>
           <script class="org.biouno.unochoice.model.GroovyScript">
             <secureFallbackScript>
-              <script/>
-              <sandbox>true</sandbox>
+              <script>return [
+    'param3',
+    'param4'
+]</script>
+              <sandbox>false</sandbox>
+              <classpath>
+                <entry>
+                  <url>file:/jar-file-path</url>
+                </entry>
+                <entry>
+                  <url>file:/jar-file-path2</url>
+                </entry>
+              </classpath>
             </secureFallbackScript>
             <secureScript>
-              <script/>
-              <sandbox>true</sandbox>
+              <script>return [
+    'param1',
+    'param2'
+]</script>
+              <sandbox>false</sandbox>
+              <classpath>
+                <entry>
+                  <url>file:/jar-file-path</url>
+                </entry>
+                <entry>
+                  <url>file:/jar-file-path2</url>
+                </entry>
+              </classpath>
             </secureScript>
           </script>
           <name>lorem</name>
-          <description/>
-          <choiceType>PT_SINGLE_SELECT</choiceType>
-          <filterable>false</filterable>
+          <description>ipsum</description>
+          <choiceType>PT_MULTI_SELECT</choiceType>
+          <filterable>true</filterable>
           <filterLength>1</filterLength>
           <projectName>active-choices-job</projectName>
           <projectFullName>active-choices-job</projectFullName>
