@@ -11,13 +11,28 @@
     <hudson.model.ParametersDefinitionProperty>
       <parameterDefinitions>
         <org.biouno.unochoice.DynamicReferenceParameter>
-          <script>
+          <script class="org.biouno.unochoice.model.GroovyScript">
+            <secureFallbackScript>
+              <script>return [
+    'param3',
+    'param4'
+]</script>
+              <sandbox>false</sandbox>
+              <classpath>
+                <entry>
+                  <url>file:/path</url>
+                </entry>
+                <entry>
+                  <url>file:/path2</url>
+                </entry>
+              </classpath>
+            </secureFallbackScript>
             <secureScript>
               <script>return [
     'param1',
     'param2'
 ]</script>
-              <sandbox>true</sandbox>
+              <sandbox>false</sandbox>
               <classpath>
                 <entry>
                   <url>file:/path</url>
@@ -28,27 +43,10 @@
               </classpath>
             </secureScript>
           </script>
-          <script>
-            <secureFallbackScript>
-              <script>return [
-    'param3',
-    'param4'
-]</script>
-              <sandbox>true</sandbox>
-              <classpath>
-                <entry>
-                  <url>file:/path</url>
-                </entry>
-                <entry>
-                  <url>file:/path2</url>
-                </entry>
-              </classpath>
-            </secureFallbackScript>
-          </script>
           <parameters/>
           <name>lorem</name>
           <description>ipsum</description>
-          <choiceType>ET_TEXT_BOX</choiceType>
+          <choiceType>ET_ORDERED_LIST</choiceType>
           <projectName>dynamic-reference-job</projectName>
           <projectFullName>unochoice/dynamic-reference-job</projectFullName>
           <referencedParameters>dolor</referencedParameters>

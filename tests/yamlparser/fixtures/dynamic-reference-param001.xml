@@ -10,7 +10,7 @@
   <properties>
     <hudson.model.ParametersDefinitionProperty>
       <parameterDefinitions>
-        <org.biouno.unochoice.ChoiceParameter>
+        <org.biouno.unochoice.DynamicReferenceParameter>
           <script class="org.biouno.unochoice.model.GroovyScript">
             <secureFallbackScript>
               <script/>
@@ -21,14 +21,15 @@
               <sandbox>true</sandbox>
             </secureScript>
           </script>
+          <parameters/>
           <name>lorem</name>
           <description/>
-          <choiceType>PT_SINGLE_SELECT</choiceType>
-          <filterable>false</filterable>
-          <filterLength>1</filterLength>
-          <projectName>active-choices-job</projectName>
-          <projectFullName>active-choices-job</projectFullName>
-        </org.biouno.unochoice.ChoiceParameter>
+          <choiceType>ET_TEXT_BOX</choiceType>
+          <projectName>dynamic-reference-job</projectName>
+          <projectFullName>dynamic-reference-job</projectFullName>
+          <referencedParameters/>
+          <omitValueField>false</omitValueField>
+        </org.biouno.unochoice.DynamicReferenceParameter>
       </parameterDefinitions>
     </hudson.model.ParametersDefinitionProperty>
   </properties>

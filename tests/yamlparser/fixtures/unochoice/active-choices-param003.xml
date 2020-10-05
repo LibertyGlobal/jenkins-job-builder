@@ -11,17 +11,15 @@
     <hudson.model.ParametersDefinitionProperty>
       <parameterDefinitions>
         <org.biouno.unochoice.ChoiceParameter>
-          <script>
-            <secureScript>
-              <script/>
-              <sandbox>false</sandbox>
-            </secureScript>
-          </script>
-          <script>
+          <script class="org.biouno.unochoice.model.GroovyScript">
             <secureFallbackScript>
               <script/>
-              <sandbox>false</sandbox>
+              <sandbox>true</sandbox>
             </secureFallbackScript>
+            <secureScript>
+              <script/>
+              <sandbox>true</sandbox>
+            </secureScript>
           </script>
           <name>lorem</name>
           <description>ipsum</description>
