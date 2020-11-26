@@ -1,4 +1,5 @@
 - job:
+    # folder name specified as part of job name
     name: auth-jobs/auth-job-test
     project-type: freestyle
     properties:

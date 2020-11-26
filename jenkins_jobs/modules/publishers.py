@@ -614,20 +614,12 @@ def trigger(registry, xml_parent, data):
     tconfig = XML.SubElement(xml_parent, "hudson.tasks.BuildTrigger")
     childProjects = XML.SubElement(tconfig, "childProjects")
     childProjects.text = data["project"]
-    tthreshold = XML.SubElement(tconfig, "threshold")
 
     threshold = data.get("threshold", "SUCCESS")
     supported_thresholds = ["SUCCESS", "UNSTABLE", "FAILURE"]
-    if threshold not in supported_thresholds:
-        raise JenkinsJobsException(
-            "threshold must be one of %s" % ", ".join(supported_thresholds)
-        )
-    tname = XML.SubElement(tthreshold, "name")
-    tname.text = hudson_model.THRESHOLDS[threshold]["name"]
-    tordinal = XML.SubElement(tthreshold, "ordinal")
-    tordinal.text = hudson_model.THRESHOLDS[threshold]["ordinal"]
-    tcolor = XML.SubElement(tthreshold, "color")
-    tcolor.text = hudson_model.THRESHOLDS[threshold]["color"]
+    helpers.trigger_threshold(
+        tconfig, "threshold", threshold, supported_thresholds=supported_thresholds
+    )
 
 
 def clone_workspace(registry, xml_parent, data):
@@ -2019,8 +2011,8 @@ def findbugs(registry, xml_parent, data):
     r"""yaml: findbugs
     FindBugs reporting for builds
 
-    Requires the Jenkins :jenkins-plugins:`FindBugs Plugin
-    <findbugs>`.
+    Requires the Jenkins FindBugs Plugin
+    (https://github.com/jenkinsci/findbugs-plugin).
 
     :arg str pattern: specifies the generated raw FindBugs XML report files,
         such as \*\*/findbugs.xml or \*\*/findbugsXml.xml. (default '')
@@ -2086,7 +2078,9 @@ def findbugs(registry, xml_parent, data):
 def checkstyle(registry, xml_parent, data):
     """yaml: checkstyle
     Publish trend reports with Checkstyle.
-    Requires the Jenkins :jenkins-plugins:`Checkstyle Plugin <checkstyle>`.
+
+    Requires the Jenkins Checkstyle Plugin
+    (https://github.com/jenkinsci/checkstyle-plugin).
 
     The checkstyle component accepts a dictionary with the
     following values:
@@ -2149,8 +2143,7 @@ def checkstyle(registry, xml_parent, data):
     """
 
     def convert_settings(lookup, data):
-        """Helper to convert settings from one key to another
-        """
+        """Helper to convert settings from one key to another."""
 
         for old_key in list(data.keys()):
             if old_key in lookup:
@@ -3298,8 +3291,8 @@ def cigame(registry, xml_parent, data):
     """yaml: cigame
     This plugin introduces a game where users get points
     for improving the builds.
-    Requires the Jenkins :jenkins-plugins:`The Continuous Integration Game
-    plugin <ci-game>`.
+    Requires the Jenkins Continuous Integration Game
+    plugin (https://github.com/jenkinsci/ci-game-plugin).
 
     Example:
 
@@ -3610,11 +3603,13 @@ def join_trigger(registry, xml_parent, data):
     Trigger a job after all the immediate downstream jobs have completed.
     Requires the Jenkins :jenkins-plugins:`Join Plugin <join>`.
 
-    :arg bool even-if-unstable: if true jobs will trigger even if some
-        downstream jobs are marked as unstable (default false)
     :arg list projects: list of projects to trigger
     :arg list publishers: list of triggers from publishers module that
         defines projects that need to be triggered
+    :arg str threshold: result threshold to trigger jobs (optional).
+        Valid values are "success", "unstable", "failure", and "aborted".
+    :arg bool even-if-unstable: if true jobs will trigger even if some
+        downstream jobs are marked as unstable (default false) (DEPRECATED)
 
     Example:
 
@@ -3632,8 +3627,13 @@ def join_trigger(registry, xml_parent, data):
         for edited_node in create_publishers(registry, pub):
             publishers.append(edited_node)
 
-    unstable = str(data.get("even-if-unstable", "false")).lower()
-    XML.SubElement(jointrigger, "evenIfDownstreamUnstable").text = unstable
+    unstable = str(data.get("even-if-unstable", "")).lower()
+    if unstable:
+        XML.SubElement(jointrigger, "evenIfDownstreamUnstable").text = unstable
+
+    threshold = data.get("threshold", "")
+    if threshold:
+        helpers.trigger_threshold(jointrigger, "resultThreshold", threshold)
 
 
 def jabber(registry, xml_parent, data):
@@ -4755,8 +4755,10 @@ def robot(registry, xml_parent, data):
 def warnings(registry, xml_parent, data):
     """yaml: warnings
     Generate trend report for compiler warnings in the console log or
-    in log files. Requires the Jenkins :jenkins-plugins:`Warnings Plugin
-    <warnings>`.
+    in log files.
+
+    Requires the Jenkins Warnings Plugin
+    (https://github.com/jenkinsci/warnings-plugin).
 
     :arg list console-log-parsers: The parser to use to scan the console
         log (default '')
@@ -6202,7 +6204,8 @@ def valgrind(registry, xml_parent, data):
 def pmd(registry, xml_parent, data):
     """yaml: pmd
     Publish trend reports with PMD.
-    Requires the Jenkins :jenkins-plugins:`PMD Plugin <pmd>`.
+
+    Requires the Jenkins PMD Plugin (https://github.com/jenkinsci/pmd-plugin).
 
     The PMD component accepts a dictionary with the following values:
 
@@ -6314,7 +6317,8 @@ def scan_build(registry, xml_parent, data):
 def dry(registry, xml_parent, data):
     """yaml: dry
     Publish trend reports with DRY.
-    Requires the Jenkins :jenkins-plugins:`DRY Plugin <dry>`.
+
+    Requires the Jenkins DRY Plugin (https://github.com/jenkinsci/dry-plugin).
 
     The DRY component accepts a dictionary with the following values:
 
@@ -7631,8 +7635,18 @@ def slack(registry, xml_parent, data):
         includes commit list with authors and titles (>=2.0). (default "NONE")
     :arg bool include-custom-message: Include a custom message into the
         notification (>=2.0). (default false)
-    :arg str custom-message: Custom message to be included (>=2.0).
-        (default '')
+    :arg str custom-message: Custom message to be included for all statuses
+        (>=2.0). (default '')
+    :arg str custom-message-success: Custom message for succesful builds
+        (>=2.10). (default '')
+    :arg str custom-message-aborted: Custom message for aborted builds
+        (>=2.10). (default '')
+    :arg str custom-message-not-built: Custom message for not-built
+        (>=2.10). (default '')
+    :arg str custom-message-unstable: Custom message for unstable builds
+        (>=2.10). (default '')
+    :arg str custom-message-failure: Custom message for failed builds
+        (>=2.10). (default '')
     :arg str auth-token-credential-id: The ID for the integration token from
         the Credentials plugin to be used to send notifications to Slack.
         (>=2.1) (default '')
@@ -7653,10 +7667,10 @@ def slack(registry, xml_parent, data):
         /../../tests/publishers/fixtures/slack003.yaml
         :language: yaml
 
-    Full example (version >= 2.0):
+    Full example (version >= 2.10):
 
     .. literalinclude::
-        /../../tests/publishers/fixtures/slack004.yaml
+        /../../tests/publishers/fixtures/slack005.yaml
         :language: yaml
 
     """
@@ -7697,6 +7711,11 @@ def slack(registry, xml_parent, data):
         ("commit-info-choice", "commitInfoChoice", "NONE"),
         ("include-custom-message", "includeCustomMessage", False),
         ("custom-message", "customMessage", ""),
+        ("custom-message-success", "customMessageSuccess", ""),
+        ("custom-message-aborted", "customMessageAborted", ""),
+        ("custom-message-not-built", "customMessageNotBuilt", ""),
+        ("custom-message-unstable", "customMessageUnstable", ""),
+        ("custom-message-failure", "customMessageFailure", ""),
         ("auth-token-credential-id", "authTokenCredentialId", ""),
         ("bot-user", "botUser", False),
         ("base-url", "baseUrl", ""),
@@ -8017,7 +8036,8 @@ def tasks(registry, xml_parent, data):
 
     Scans the workspace files for open tasks and generates a trend report.
 
-    Requires the Jenkins :jenkins-plugins:`Task Scanner Plugin <tasks>`.
+    Requires the Jenkins Task Scanner Plugin
+    (https://github.com/jenkinsci/tasks-plugin).
 
     :arg list files-to-scan: Fileset includes setting that specifies the
         workspace files to scan for tasks, such as ``**/*.java``. Basedir of

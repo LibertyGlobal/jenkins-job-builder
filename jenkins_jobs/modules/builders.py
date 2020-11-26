@@ -1140,6 +1140,10 @@ def gradle(registry, xml_parent, data):
         root) here, such as ${workspace}/parent/ instead of just
         ${workspace}.
     :arg str build-file: name of gradle build script (default 'build.gradle')
+    :arg bool pass-system-properties: Pass all parameters as
+        System properties (default false)
+    :arg bool pass-project-properties: Pass all parameters as
+        Project properties (default false)
 
     Example:
 
@@ -1158,6 +1162,8 @@ def gradle(registry, xml_parent, data):
         ("wrapper", "useWrapper", False),
         ("executable", "makeExecutable", False),
         ("use-root-dir", "fromRootBuildScriptDir", False),
+        ("pass-system-properties", "passAllAsSystemProperties", False),
+        ("pass-project-properties", "passAllAsProjectProperties", False),
     ]
     helpers.convert_mapping_to_xml(gradle, data, mappings, fail_required=True)
 
@@ -1165,8 +1171,7 @@ def gradle(registry, xml_parent, data):
 
 
 def _groovy_common_scriptSource(data):
-    """Helper function to generate the XML element common to groovy builders
-    """
+    """Helper function to generate the XML element common to groovy builders."""
 
     scriptSource = XML.Element("scriptSource")
     if "command" in data and "file" in data:
@@ -1244,13 +1249,15 @@ def system_groovy(registry, xml_parent, data):
 
     :arg str file: Groovy file to run. (Alternative: you can chose a command
         instead)
-    :arg str command: Groovy command to run. (Alternative: you can chose a
+    :arg str command: Groovy command to run. (Alternative: you can choose a
         script file instead)
+    :arg bool sandbox: Execute script inside of groovy sandbox (>=2.0)
+        (default false)
     :arg str bindings: Define variable bindings (in the properties file
         format). Specified variables can be addressed from the script.
         (optional)
-    :arg str class-path: Specify script classpath here. Each line is one class
-        path item. (optional)
+    :arg (list str) class-path: List of script class paths.
+        (optional)
 
     Examples:
 
@@ -1259,12 +1266,25 @@ def system_groovy(registry, xml_parent, data):
     .. literalinclude:: ../../tests/builders/fixtures/system-groovy002.yaml
        :language: yaml
     """
-
     root_tag = "hudson.plugins.groovy.SystemGroovy"
     sysgroovy = XML.SubElement(xml_parent, root_tag)
-    sysgroovy.append(_groovy_common_scriptSource(data))
-
-    mapping = [("bindings", "bindings", ""), ("class-path", "classpath", "")]
+    if "file" in data:
+        scriptSource = _groovy_common_scriptSource(data)
+    if "command" in data:
+        scriptSource = XML.Element("source")
+        scriptSource.set("class", "hudson.plugins.groovy.StringSystemScriptSource")
+        script = XML.SubElement(scriptSource, "script")
+        mapping = [("command", "script", None), ("sandbox", "sandbox", False)]
+        helpers.convert_mapping_to_xml(script, data, mapping, fail_required=True)
+        classpath = XML.SubElement(script, "classpath")
+        classpaths = data.get("class-path", [])
+        if isinstance(classpaths, str):
+            classpaths = [classpaths]
+        for path in classpaths:
+            entry = XML.SubElement(classpath, "entry")
+            XML.SubElement(entry, "url").text = path
+    sysgroovy.append(scriptSource)
+    mapping = [("bindings", "bindings", "")]
     helpers.convert_mapping_to_xml(sysgroovy, data, mapping, fail_required=True)
 
 
@@ -3998,8 +4018,8 @@ def build_publish_docker_image(registry, xml_parent, data):
         registry (default '')
     :arg bool clean-images: Option to clean local images (default false)
     :arg bool jenkins-job-delete: Attempt to remove images when jenkins
-        deletes the run	(default false)
-    :arg str cloud: Cloud to use to build image	(default '')
+        deletes the run (default false)
+    :arg str cloud: Cloud to use to build image (default '')
 
     Minimal example:
 

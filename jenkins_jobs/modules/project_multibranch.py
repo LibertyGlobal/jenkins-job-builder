@@ -60,10 +60,18 @@ Plugins required:
       (default '-1, forever')
     * **script-path** (`str`): Path to Jenkinsfile, relative to workspace.
       (default 'Jenkinsfile')
+    * **script-id** (`str`): Script id from the global Jenkins script store
+      provided by the config-file provider plugin. Mutually exclusive with
+      **script-path** option.
+    * **sandbox** (`bool`): This option is strongly recommended if the
+      Jenkinsfile is using load to evaluate a groovy source file from an
+      SCM repository. Usable only with **script-id** option. (default 'false')
 
 Job examples:
 
-.. literalinclude:: /../../tests/multibranch/fixtures/multibranch_defaults.yaml
+.. literalinclude:: /../../tests/multibranch/fixtures/multibranch_defaults_id_mode.yaml
+
+.. literalinclude:: /../../tests/multibranch/fixtures/multibranch_defaults_path_mode.yaml
 
 .. literalinclude:: /../../tests/multibranch/fixtures/multi_scm_full.yaml
 
@@ -78,6 +86,7 @@ import six
 from jenkins_jobs.modules.scm import git_extensions
 from jenkins_jobs.errors import InvalidAttributeError
 from jenkins_jobs.errors import JenkinsJobsException
+from jenkins_jobs.xml_config import remove_ignorable_whitespace
 
 logger = logging.getLogger(str(__name__))
 
@@ -85,8 +94,39 @@ logger = logging.getLogger(str(__name__))
 class WorkflowMultiBranch(jenkins_jobs.modules.base.Base):
     sequence = 0
     multibranch_path = "org.jenkinsci.plugins.workflow.multibranch"
+    multibranch_defaults_path = "org.jenkinsci.pipeline.workflow.multibranch"
     jenkins_class = "".join([multibranch_path, ".WorkflowMultiBranchProject"])
-    jenkins_factory_class = "".join([multibranch_path, ".WorkflowBranchProjectFactory"])
+    jenkins_factory = {
+        "script_path": {
+            "class": "".join([multibranch_path, ".WorkflowBranchProjectFactory"])
+        },
+        "script_id": {
+            "class": "".join(
+                [
+                    multibranch_defaults_path,
+                    ".defaults.PipelineBranchDefaultsProjectFactory",
+                ]
+            ),
+            "plugin": "pipeline-multibranch-defaults",
+        },
+    }
+
+    @staticmethod
+    def _factory_opts_check(data):
+
+        sandbox = data.get("sandbox", None)
+        script_id = data.get("script-id", None)
+        script_path = data.get("script-path", None)
+
+        if script_id and script_path:
+            error_msg = "script-id and script-path are mutually exclusive options"
+            raise JenkinsJobsException(error_msg)
+        elif not script_id and sandbox:
+            error_msg = (
+                "Sandbox mode is applicable only for multibranch with defaults"
+                "project type used with script-id option"
+            )
+            raise JenkinsJobsException(error_msg)
 
     def root_xml(self, data):
         xml_parent = XML.Element(self.jenkins_class)
@@ -268,28 +308,50 @@ class WorkflowMultiBranch(jenkins_jobs.modules.base.Base):
         # Factory #
         ###########
 
-        factory = XML.SubElement(
-            xml_parent, "factory", {"class": self.jenkins_factory_class}
-        )
+        self._factory_opts_check(data)
+
+        if data.get("script-id"):
+            mode = "script_id"
+            fopts_map = (
+                ("script-id", "scriptId", None),
+                ("sandbox", "useSandbox", None),
+            )
+        else:
+            mode = "script_path"
+            fopts_map = (("script-path", "scriptPath", "Jenkinsfile"),)
+
+        factory = XML.SubElement(xml_parent, "factory", self.jenkins_factory[mode])
         XML.SubElement(
             factory, "owner", {"class": self.jenkins_class, "reference": "../.."}
         )
-        XML.SubElement(factory, "scriptPath").text = data.get(
-            "script-path", "Jenkinsfile"
-        )
+
+        # multibranch default
+
+        helpers.convert_mapping_to_xml(factory, data, fopts_map, fail_required=False)
 
         return xml_parent
 
 
 class WorkflowMultiBranchDefaults(WorkflowMultiBranch):
-    jenkins_class = (
-        "org.jenkinsci.plugins.pipeline.multibranch"
-        ".defaults.PipelineMultiBranchDefaultsProject"
+    multibranch_path = "org.jenkinsci.plugins.workflow.multibranch"
+    multibranch_defaults_path = "org.jenkinsci.plugins.pipeline.multibranch"
+    jenkins_class = "".join(
+        [multibranch_defaults_path, ".defaults.PipelineMultiBranchDefaultsProject"]
     )
-    jenkins_factory_class = (
-        "org.jenkinsci.plugins.pipeline.multibranch"
-        ".defaults.PipelineBranchDefaultsProjectFactory"
-    )
+    jenkins_factory = {
+        "script_path": {
+            "class": "".join([multibranch_path, ".WorkflowBranchProjectFactory"]),
+            "plugin": "workflow-multibranch",
+        },
+        "script_id": {
+            "class": "".join(
+                [
+                    multibranch_defaults_path,
+                    ".defaults.PipelineBranchDefaultsProjectFactory",
+                ]
+            )
+        },
+    }
 
 
 def bitbucket_scm(xml_parent, data):
@@ -305,6 +367,8 @@ def bitbucket_scm(xml_parent, data):
     :arg str repo: The BitBucket repo. (required)
 
     :arg bool discover-tags: Discovers tags on the repository.
+        (default false)
+    :arg bool lfs: Git LFS pull after checkout.
         (default false)
     :arg str server-url: The address of the bitbucket server. (optional)
     :arg str head-filter-regex: A regular expression for filtering
@@ -340,6 +404,7 @@ def bitbucket_scm(xml_parent, data):
         origin/develop/new-feature will be checked out to a local branch
         named develop/newfeature.
         Requires the :jenkins-plugins:`Git Plugin <git>`.
+    :arg list(str) refspecs: Which refspecs to look for.
     :arg dict checkout-over-ssh: Checkout repo over ssh.
 
         * **credentials** ('str'): Credentials to use for
@@ -419,10 +484,40 @@ def bitbucket_scm(xml_parent, data):
     helpers.convert_mapping_to_xml(source, data, mapping_optional, fail_required=False)
 
     traits = XML.SubElement(source, "traits")
+
+    if data.get("refspecs"):
+        refspec_trait = XML.SubElement(
+            traits,
+            "jenkins.plugins.git.traits.RefSpecsSCMSourceTrait",
+            {"plugin": "git"},
+        )
+        templates = XML.SubElement(refspec_trait, "templates")
+        refspecs = data.get("refspecs")
+        for refspec in refspecs:
+            e = XML.SubElement(
+                templates,
+                (
+                    "jenkins.plugins.git.traits"
+                    ".RefSpecsSCMSourceTrait_-RefSpecTemplate"
+                ),
+            )
+            XML.SubElement(e, "value").text = refspec
+
     if data.get("discover-tags", False):
         XML.SubElement(
             traits, "com.cloudbees.jenkins.plugins.bitbucket.TagDiscoveryTrait"
         )
+
+    if data.get("lfs", False):
+        gitlfspull = XML.SubElement(
+            traits, "jenkins.plugins.git.traits.GitLFSPullTrait", {"plugin": "git"}
+        )
+        XML.SubElement(
+            gitlfspull,
+            "extension",
+            {"class": "hudson.plugins.git.extensions.impl.GitLFSPull"},
+        )
+
     if data.get("head-filter-regex", None):
         rshf = XML.SubElement(traits, "jenkins.scm.impl.trait.RegexSCMHeadFilterTrait")
         XML.SubElement(rshf, "regex").text = data.get("head-filter-regex")
@@ -804,7 +899,7 @@ def github_scm(xml_parent, data):
         (default 'contributors')
     :arg str discover-pr-origin: Discovers pull requests where the origin
         repository is the same as the target repository.
-        Valid options: merge-current, current, both.  (default 'merge-current')
+        Valid options: merge-current, current, both, false.  (default 'merge-current')
     :arg bool discover-tags: Discovers tags on the repository.
         (default false)
     :arg list build-strategies: Provides control over whether to build a branch
@@ -946,18 +1041,19 @@ def github_scm(xml_parent, data):
         XML.SubElement(dprf, "trust").attrib["class"] = trust_map[trust]
 
     dpro_strategy = data.get("discover-pr-origin", "merge-current")
-    dpro = XML.SubElement(
-        traits, "".join([github_path_dscore, ".OriginPullRequestDiscoveryTrait"])
-    )
-    dpro_strategy_map = {"merge-current": "1", "current": "2", "both": "3"}
-    if dpro_strategy not in dpro_strategy_map:
-        raise InvalidAttributeError(
-            "discover-pr-origin", dpro_strategy, dpro_strategy_map.keys()
+    if dpro_strategy:
+        dpro = XML.SubElement(
+            traits, "".join([github_path_dscore, ".OriginPullRequestDiscoveryTrait"])
         )
-    dpro_mapping = [
-        ("discover-pr-origin", "strategyId", "merge-current", dpro_strategy_map)
-    ]
-    helpers.convert_mapping_to_xml(dpro, data, dpro_mapping, fail_required=True)
+        dpro_strategy_map = {"merge-current": "1", "current": "2", "both": "3"}
+        if dpro_strategy not in dpro_strategy_map:
+            raise InvalidAttributeError(
+                "discover-pr-origin", dpro_strategy, dpro_strategy_map.keys()
+            )
+        dpro_mapping = [
+            ("discover-pr-origin", "strategyId", "merge-current", dpro_strategy_map)
+        ]
+        helpers.convert_mapping_to_xml(dpro, data, dpro_mapping, fail_required=True)
 
     if data.get("head-filter-regex", None):
         rshf = XML.SubElement(traits, "jenkins.scm.impl.trait.RegexSCMHeadFilterTrait")
@@ -1007,8 +1103,16 @@ def build_strategies(xml_parent, data):
     Requires the :jenkins-plugins:`Basic Branch Build Strategies Plugin
     <basic-branch-build-strategies>`.
 
+    Other build strategies can be configured via raw XML injection.
+
     :arg list build-strategies: Definition of build strategies.
 
+        * **all-strategies-match** (dict): All sub strategies must match for
+            this strategy to match.
+            * **strategies** (list): Sub strategies
+        * **any-strategies-match** (dict): Builds whenever any of the sub
+            strategies match.
+            * **strategies** (list): Sub strategies
         * **tags** (dict): Builds tags
             * **ignore-tags-newer-than** (int) The number of days since the tag
                 was created before it is eligible for automatic building.
@@ -1047,12 +1151,35 @@ def build_strategies(xml_parent, data):
                     for example: `master release*` (default `*`)
                 * **excludes** (str) Name patterns to ignore even if matched
                     by the includes list. For example: release (optional)
+        * **raw** (dict): Injects raw BuildStrategy XML to use other build
+            strategy plugins.
 
     """
 
     basic_build_strategies = "jenkins.branch.buildstrategies.basic"
-    bbs = XML.SubElement(xml_parent, "buildStrategies")
-    for bbs_list in data.get("build-strategies", None):
+    if data.get("build-strategies", None):
+        bbs_data = data.get("build-strategies", None)
+        bbs = XML.SubElement(xml_parent, "buildStrategies")
+    else:
+        bbs_data = data.get("strategies", None)
+        bbs = XML.SubElement(xml_parent, "strategies")
+    for bbs_list in bbs_data:
+        if "all-strategies-match" in bbs_list:
+            all_elem = XML.SubElement(
+                bbs,
+                "".join([basic_build_strategies, ".AllBranchBuildStrategyImpl"]),
+                {"plugin": "basic-branch-build-strategies"},
+            )
+            build_strategies(all_elem, bbs_list["all-strategies-match"])
+
+        if "any-strategies-match" in bbs_list:
+            any_elem = XML.SubElement(
+                bbs,
+                "".join([basic_build_strategies, ".AnyBranchBuildStrategyImpl"]),
+                {"plugin": "basic-branch-build-strategies"},
+            )
+            build_strategies(any_elem, bbs_list["any-strategies-match"])
+
         if "tags" in bbs_list:
             tags = bbs_list["tags"]
             tags_elem = XML.SubElement(
@@ -1173,6 +1300,11 @@ def build_strategies(xml_parent, data):
                         fail_required=False,
                     )
 
+        if "raw" in bbs_list:
+            raw_xml = XML.fromstring(bbs_list["raw"].get("xml"))
+            remove_ignorable_whitespace(raw_xml)
+            XML.SubElement(bbs, None).append(raw_xml)
+
 
 def property_strategies(xml_parent, data):
     """Configure Basic Branch Property Strategies.
@@ -1193,7 +1325,27 @@ def property_strategies(xml_parent, data):
                 max-survivability (optional)
                 Requires the :jenkins-plugins:`Pipeline Multibranch Plugin
                 <workflow-multibranch>`
-
+            * **trigger-build-on-pr-comment** (str): The comment body to
+                trigger a new build for a PR job when it is received. This
+                is compiled as a case insensitive regular expression, so
+                use ``".*"`` to trigger a build on any comment whatsoever.
+                (optional)
+                Requires the :jenkins-plugins:`GitHub PR Comment Build Plugin
+                <github-pr-comment-build>`
+            * **trigger-build-on-pr-review** (bool): This property will
+                cause a job for a pull request ``(PR-*)`` to be triggered
+                immediately when a review is made on the PR in GitHub.
+                This has no effect on jobs that are not for pull requests.
+                (optional)
+                Requires the :jenkins-plugins:`GitHub PR Comment Build Plugin
+                <github-pr-comment-build>`
+            * **trigger-build-on-pr-update** (bool): This property will
+                cause a job for a pull request ``(PR-*)`` to be triggered
+                immediately when the PR title or description is edited in
+                GitHub. This has no effect on jobs that are not for pull
+                requests. (optional)
+                Requires the :jenkins-plugins:`GitHub PR Comment Build Plugin
+                <github-pr-comment-build>`
         * **named-branches** (dict): Named branches get different properties.
             Comprised of a list of defaults and a list of property strategy
             exceptions for use with specific branches.
@@ -1210,6 +1362,27 @@ def property_strategies(xml_parent, data):
                     max-survivability (optional)
                     Requires the :jenkins-plugins:`Pipeline Multibranch Plugin
                     <workflow-multibranch>`
+                * **trigger-build-on-pr-comment** (str): The comment body to
+                    trigger a new build for a PR job when it is received. This
+                    is compiled as a case insensitive regular expression, so
+                    use ``".*"`` to trigger a build on any comment whatsoever.
+                    (optional)
+                    Requires the :jenkins-plugins:`GitHub PR Comment Build Plugin
+                    <github-pr-comment-build>`
+                * **trigger-build-on-pr-review** (bool): This property will
+                    cause a job for a pull request ``(PR-*)`` to be triggered
+                    immediately when a review is made on the PR in GitHub.
+                    This has no effect on jobs that are not for pull requests.
+                    (optional)
+                    Requires the :jenkins-plugins:`GitHub PR Comment Build Plugin
+                    <github-pr-comment-build>`
+                * **trigger-build-on-pr-update** (bool): This property will
+                    cause a job for a pull request ``(PR-*)`` to be triggered
+                    immediately when the PR title or description is edited in
+                    GitHub. This has no effect on jobs that are not for pull
+                    requests. (optional)
+                    Requires the :jenkins-plugins:`GitHub PR Comment Build Plugin
+                    <github-pr-comment-build>`
 
             * **exceptions** (list): A list of branch names and the property
                 strategies to be used on that branch, instead of any listed
@@ -1375,12 +1548,20 @@ def apply_property_strategies(props_elem, props_list):
 
     basic_property_strategies = "jenkins.branch"
     workflow_multibranch = "org.jenkinsci.plugins.workflow.multibranch"
+    pr_comment_build = "com.adobe.jenkins.github__pr__comment__build"
     # Valid options for the pipeline branch durability override.
     pbdo_map = collections.OrderedDict(
         [
             ("max-survivability", "MAX_SURVIVABILITY"),
             ("performance-optimized", "PERFORMANCE_OPTIMIZED"),
             ("survivable-nonatomic", "SURVIVABLE_NONATOMIC"),
+        ]
+    )
+
+    pcb_bool_opts = collections.OrderedDict(
+        [
+            ("trigger-build-on-pr-review", ".TriggerPRReviewBranchProperty"),
+            ("trigger-build-on-pr-update", ".TriggerPRUpdateBranchProperty"),
         ]
     )
 
@@ -1404,3 +1585,19 @@ def apply_property_strategies(props_elem, props_list):
                 {"plugin": "workflow-multibranch"},
             )
             XML.SubElement(pbdo_elem, "hint").text = pbdo_map.get(pbdo_val)
+
+        tbopc_val = dbs_list.get("trigger-build-on-pr-comment", None)
+        if tbopc_val:
+            tbopc_elem = XML.SubElement(
+                props_elem,
+                "".join([pr_comment_build, ".TriggerPRCommentBranchProperty"]),
+                {"plugin": "github-pr-comment-build"},
+            )
+            XML.SubElement(tbopc_elem, "commentBody").text = tbopc_val
+        for opt in pcb_bool_opts:
+            if dbs_list.get(opt, False):
+                XML.SubElement(
+                    props_elem,
+                    "".join([pr_comment_build, pcb_bool_opts.get(opt)]),
+                    {"plugin": "github-pr-comment-build"},
+                )
