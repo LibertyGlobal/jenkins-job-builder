@@ -8,6 +8,7 @@ scm:
         repo: 'test'
         server-url: https://bitbucket.example.com:8080
         discover-tags: true
+        lfs: true
         head-filter-regex: 'master|\d+\.\d+'
         discover-pr-origin: headOnly
         discover-branch: all
@@ -23,7 +24,18 @@ scm:
             all-branches:
                 - suppress-scm-triggering: true
                 - pipeline-branch-durability-override: max-survivability
+        refspecs:
+            - '+refs/heads/*:refs/remotes/@{remote}/*'
+            - '+refs/tags/*:refs/remotes/@{remote}/*'
         build-strategies:
+            - all-strategies-match:
+                strategies:
+                  - regular-branches: true
+                  - skip-initial-build: true
+            - any-strategies-match:
+                strategies:
+                  - change-request: {}
+                  - tags: {}
             - tags:
                 ignore-tags-newer-than: 1
                 ignore-tags-older-than: 7
@@ -50,6 +62,9 @@ scm:
         clean:
             after: true
             before: true
+        committer:
+            user: CI System
+            email: no-reply@ci.example.com
         prune: true
         shallow-clone: true
         depth: 3
@@ -60,5 +75,6 @@ scm:
             parent-credentials: true
             timeout: 100
         timeout: "100"
+        skip-notifications: true
         use-author: true
         wipe-workspace: true

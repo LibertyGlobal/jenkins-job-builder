@@ -20,7 +20,18 @@ scm:
             all-branches:
                 - suppress-scm-triggering: true
                 - pipeline-branch-durability-override: max-survivability
+                - trigger-build-on-pr-comment: "Ci build!"
+                - trigger-build-on-pr-review: true
+                - trigger-build-on-pr-update: true
         build-strategies:
+            - all-strategies-match:
+                strategies:
+                  - regular-branches: true
+                  - skip-initial-build: true
+            - any-strategies-match:
+                strategies:
+                  - change-request: {}
+                  - tags: {}
             - tags:
                 ignore-tags-newer-than: 1
                 ignore-tags-older-than: 7
@@ -47,6 +58,9 @@ scm:
         clean:
             after: true
             before: true
+        committer:
+            user: CI System
+            email: no-reply@ci.example.com
         prune: true
         shallow-clone: true
         depth: 3
@@ -58,5 +72,6 @@ scm:
             parent-credentials: true
             timeout: 100
         timeout: "100"
+        skip-notifications: true
         use-author: true
         wipe-workspace: true

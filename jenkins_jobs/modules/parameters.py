@@ -1117,10 +1117,10 @@ def param_separator(registry, xml_parent, data):
     """yaml: parameter-separator
     A parameter separator.
 
-    :arg str name: name of the separator (optional, the plugin will assign a randomly generated UUID if not specified)
-    :arg str separator-style: the style of the separator. Uses CSS. (optional)
-    :arg str section-header-text: the section header text of the separator (optional)
-    :arg str section-header-style: the section header style (CSS) of the separator. Uses CSS. (optional)
+    :arg str name: name of the separator (default "", the plugin will assign a randomly generated UUID if not specified)
+    :arg str separator-style: the style of the separator. Uses CSS. (default "")
+    :arg str section-header-text: the section header text of the separator (default "")
+    :arg str section-header-style: the section header style (CSS) of the separator. Uses CSS. (default "")
 
     Example::
 

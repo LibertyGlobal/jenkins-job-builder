@@ -51,8 +51,7 @@ def gerrit_handle_legacy_configuration(data):
     hyphenizer = re.compile("[A-Z]")
 
     def hyphenize(attr):
-        """Convert strings like triggerOn to trigger-on.
-        """
+        """Convert strings like triggerOn to trigger-on."""
         return hyphenizer.sub(lambda x: "-%s" % x.group(0).lower(), attr)
 
     def convert_dict(d, old_keys):
@@ -569,9 +568,9 @@ def gerrit(registry, xml_parent, data):
 
         .. deprecated:: 3.5.0  Supported for Gerrit Trigger Plugin versions
             < 2.14.0. See
-            `Missed Events Playback Feature <https://github.com/jenkinsci/
-            gerrit-trigger-plugin/blob/master/docs/README.adoc#user-content
-            -missed-events-playback-feature-available-from-v-2140>`_.
+            `Missed Events Playback Feature <https://plugins.jenkins.io/
+            gerrit-trigger#missed-events-playback-feature-available-from-
+            v-2-14-0>`_.
 
     :arg str custom-url: Custom URL for a message sent to Gerrit. Build
         details URL will be used if empty. (default '')

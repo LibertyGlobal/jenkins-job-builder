@@ -14,6 +14,14 @@ scm:
                 - suppress-scm-triggering: true
                 - pipeline-branch-durability-override: max-survivability
         build-strategies:
+            - all-strategies-match:
+                strategies:
+                  - regular-branches: true
+                  - skip-initial-build: true
+            - any-strategies-match:
+                strategies:
+                  - change-request: {}
+                  - tags: {}
             - tags:
                 ignore-tags-newer-than: 1
                 ignore-tags-older-than: 7
@@ -37,6 +45,11 @@ scm:
                 - exact-name: {}
                 - regex-name: {}
                 - wildcards-name: {}
+            - raw:
+                xml: |
+                  <com.igalg.jenkins.plugins.multibranch.buildstrategy.IncludeRegionBranchBuildStrategy plugin="multibranch-build-strategy-extension">
+                    <includedRegions>my/cool/project/*.cpp</includedRegions>
+                  </com.igalg.jenkins.plugins.multibranch.buildstrategy.IncludeRegionBranchBuildStrategy>
         clean:
             after: true
             before: true

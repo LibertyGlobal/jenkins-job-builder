@@ -65,6 +65,11 @@
             <jenkins.plugins.git.traits.CleanBeforeCheckoutTrait>
               <extension class="hudson.plugins.git.extensions.impl.CleanBeforeCheckout"/>
             </jenkins.plugins.git.traits.CleanBeforeCheckoutTrait>
+            <jenkins.plugins.git.traits.UserIdentityTrait>
+              <extension class="hudson.plugins.git.extensions.impl.UserIdentity">
+                <email>no-reply@ci.example.com</email>
+              </extension>
+            </jenkins.plugins.git.traits.UserIdentityTrait>
             <jenkins.plugins.git.traits.CloneOptionTrait>
               <extension class="hudson.plugins.git.extensions.impl.CloneOption">
                 <shallow>true</shallow>
@@ -73,6 +78,7 @@
                 <timeout>100</timeout>
               </extension>
             </jenkins.plugins.git.traits.CloneOptionTrait>
+            <com.cloudbees.jenkins.plugins.bitbucket.notifications.SkipNotificationsTrait/>
             <jenkins.plugins.git.traits.SubmoduleOptionTrait>
               <extension class="hudson.plugins.git.extensions.impl.SubmoduleOption">
                 <disableSubmodules>false</disableSubmodules>
@@ -107,10 +113,32 @@
               <org.jenkinsci.plugins.workflow.multibranch.DurabilityHintBranchProperty plugin="workflow-multibranch">
                 <hint>MAX_SURVIVABILITY</hint>
               </org.jenkinsci.plugins.workflow.multibranch.DurabilityHintBranchProperty>
+              <com.adobe.jenkins.github__pr__comment__build.TriggerPRCommentBranchProperty plugin="github-pr-comment-build">
+                <commentBody>Ci build!</commentBody>
+              </com.adobe.jenkins.github__pr__comment__build.TriggerPRCommentBranchProperty>
+              <com.adobe.jenkins.github__pr__comment__build.TriggerPRReviewBranchProperty plugin="github-pr-comment-build"/>
+              <com.adobe.jenkins.github__pr__comment__build.TriggerPRUpdateBranchProperty plugin="github-pr-comment-build"/>
             </a>
           </properties>
         </strategy>
         <buildStrategies>
+          <jenkins.branch.buildstrategies.basic.AllBranchBuildStrategyImpl plugin="basic-branch-build-strategies">
+            <strategies>
+              <jenkins.branch.buildstrategies.basic.BranchBuildStrategyImpl plugin="basic-branch-build-strategies"/>
+              <jenkins.branch.buildstrategies.basic.SkipInitialBuildOnFirstBranchIndexing plugin="basic-branch-build-strategies"/>
+            </strategies>
+          </jenkins.branch.buildstrategies.basic.AllBranchBuildStrategyImpl>
+          <jenkins.branch.buildstrategies.basic.AnyBranchBuildStrategyImpl plugin="basic-branch-build-strategies">
+            <strategies>
+              <jenkins.branch.buildstrategies.basic.ChangeRequestBuildStrategyImpl plugin="basic-branch-build-strategies">
+                <ignoreTargetOnlyChanges>false</ignoreTargetOnlyChanges>
+              </jenkins.branch.buildstrategies.basic.ChangeRequestBuildStrategyImpl>
+              <jenkins.branch.buildstrategies.basic.TagBuildStrategyImpl plugin="basic-branch-build-strategies">
+                <atMostMillis>-1</atMostMillis>
+                <atLeastMillis>-1</atLeastMillis>
+              </jenkins.branch.buildstrategies.basic.TagBuildStrategyImpl>
+            </strategies>
+          </jenkins.branch.buildstrategies.basic.AnyBranchBuildStrategyImpl>
           <jenkins.branch.buildstrategies.basic.TagBuildStrategyImpl plugin="basic-branch-build-strategies">
             <atMostMillis>86400000</atMostMillis>
             <atLeastMillis>604800000</atLeastMillis>

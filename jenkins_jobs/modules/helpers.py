@@ -20,17 +20,16 @@ import xml.etree.ElementTree as XML
 from jenkins_jobs.errors import InvalidAttributeError
 from jenkins_jobs.errors import JenkinsJobsException
 from jenkins_jobs.errors import MissingAttributeError
+from jenkins_jobs.modules import hudson_model
 
 import pkg_resources
 
 
 def build_trends_publisher(plugin_name, xml_element, data):
-    """Helper to create various trend publishers.
-    """
+    """Helper to create various trend publishers."""
 
     def append_thresholds(element, data, only_totals):
-        """Appends the status thresholds.
-        """
+        """Appends the status thresholds."""
 
         for status in ["unstable", "failed"]:
             status_data = data.get(status, {})
@@ -623,6 +622,26 @@ def trigger_project(tconfigs, project_def, registry, param_order=None):
                 convert_mapping_to_xml(
                     param_tag, project_def, mapping, fail_required=True
                 )
+
+
+def trigger_threshold(
+    parent_element, element_name, threshold_name, supported_thresholds=None
+):
+    """Generate a resultThreshold XML element for build/join triggers"""
+    element = XML.SubElement(parent_element, element_name)
+
+    try:
+        threshold = hudson_model.THRESHOLDS[threshold_name.upper()]
+    except KeyError:
+        if not supported_thresholds:
+            supported_thresholds = hudson_model.THRESHOLDS.keys()
+        raise JenkinsJobsException(
+            "threshold must be one of %s" % ", ".join(supported_thresholds)
+        )
+    XML.SubElement(element, "name").text = threshold["name"]
+    XML.SubElement(element, "ordinal").text = threshold["ordinal"]
+    XML.SubElement(element, "color").text = threshold["color"]
+    return element
 
 
 def convert_mapping_to_xml(parent, data, mapping, fail_required=True):

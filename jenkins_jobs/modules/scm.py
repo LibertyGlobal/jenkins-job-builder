@@ -238,7 +238,7 @@ def git(registry, xml_parent, data):
             * **redmineweb** - https://www.redmine.org/
             * **rhodecode** - https://rhodecode.com/
             * **stash** - https://www.atlassian.com/software/bitbucket/enterprise/data-center
-            * **viewgit** - http://viewgit.fealdia.org/
+            * **viewgit**
     :arg str browser-url: url for the repository browser (required if browser
         is not 'auto', no default)
     :arg str browser-version: version of the repository browser (GitLab only,
@@ -264,6 +264,9 @@ def git(registry, xml_parent, data):
         * **clean** (`dict`)
             * **after** (`bool`) - Clean the workspace after checkout
             * **before** (`bool`) - Clean the workspace before checkout
+        * **committer** (`dict`)
+            * **name** (`str`) - Name to use as author of new commits
+            * **email** (`str`) - E-mail address to use for new commits
         * **excluded-users**: (`list(string)`) - list of users to ignore
             revisions from when polling for changes.
             (if polling is enabled, optional)
@@ -299,6 +302,9 @@ def git(registry, xml_parent, data):
             (default false)
         * **honor-refspec** (`bool`) - Perform initial clone using the refspec
             defined for the repository (default false)
+        * **skip-notifications** (`bool`) - Skip build status notifications
+            (default false). Requires the Jenkins
+            :jenkins-plugins:`Skip Notifications Trait Plugin <skip-notifications-trait>`.
         * **sparse-checkout** (`dict`)
             * **paths** (`list`) - List of paths to sparse checkout. (optional)
         * **submodule** (`dict`)
@@ -524,6 +530,22 @@ def git_extensions(xml_parent, data):
                 ext = XML.SubElement(tr, "extension", {"class": ext_name})
             else:
                 ext = XML.SubElement(xml_parent, ext_name)
+    committer = data.get("committer", {})
+    if committer:
+        ext_name = impl_prefix + "UserIdentity"
+        if trait:
+            trait_name = "com.cloudbees.jenkins.plugins.bitbucket.notifications.SkipNotificationsTrait"
+            trait_name = "UserIdentityTrait"
+            tr = XML.SubElement(xml_parent, trait_prefix + trait_name)
+            ext = XML.SubElement(tr, "extension", {"class": ext_name})
+        else:
+            ext = XML.SubElement(xml_parent, ext_name)
+        name = committer.get("name")
+        if name:
+            XML.SubElement(ext, "name").text = name
+        email = committer.get("email")
+        if email:
+            XML.SubElement(ext, "email").text = email
     if not trait and "excluded-users" in data:
         excluded_users = "\n".join(data["excluded-users"])
         ext = XML.SubElement(xml_parent, impl_prefix + "UserExclusion")
@@ -607,6 +629,10 @@ def git_extensions(xml_parent, data):
             ).lower()
         if "reference-repo" in data:
             XML.SubElement(ext, "reference").text = str(data["reference-repo"])
+    skip_notifications = data.get("skip-notifications", False)
+    if trait and skip_notifications:
+        trait_name = "com.cloudbees.jenkins.plugins.bitbucket.notifications.SkipNotificationsTrait"
+        XML.SubElement(xml_parent, trait_name)
     if not trait and "sparse-checkout" in data:
         ext_name = impl_prefix + "SparseCheckoutPaths"
         ext = XML.SubElement(xml_parent, ext_name)
@@ -1127,8 +1153,8 @@ def tfs(registry, xml_parent, data):
     r"""yaml: tfs
     Specifies the Team Foundation Server repository for this job.
 
-    Requires the Jenkins :jenkins-plugins:`Team Foundation Server Plugin
-    <tfs>`.
+    Requires the Jenkins Team Foundation Server Plugin
+    (https://github.com/jenkinsci/tfs-plugin).
 
     **NOTE**: TFS Password must be entered manually on the project if a
     user name is specified. The password will be overwritten with an empty

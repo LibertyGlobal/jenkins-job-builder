@@ -38,7 +38,20 @@
           <credentialsId>secret</credentialsId>
           <serverUrl>https://bitbucket.example.com:8080</serverUrl>
           <traits>
+            <jenkins.plugins.git.traits.RefSpecsSCMSourceTrait plugin="git">
+              <templates>
+                <jenkins.plugins.git.traits.RefSpecsSCMSourceTrait_-RefSpecTemplate>
+                  <value>+refs/heads/*:refs/remotes/@{remote}/*</value>
+                </jenkins.plugins.git.traits.RefSpecsSCMSourceTrait_-RefSpecTemplate>
+                <jenkins.plugins.git.traits.RefSpecsSCMSourceTrait_-RefSpecTemplate>
+                  <value>+refs/tags/*:refs/remotes/@{remote}/*</value>
+                </jenkins.plugins.git.traits.RefSpecsSCMSourceTrait_-RefSpecTemplate>
+              </templates>
+            </jenkins.plugins.git.traits.RefSpecsSCMSourceTrait>
             <com.cloudbees.jenkins.plugins.bitbucket.TagDiscoveryTrait/>
+            <jenkins.plugins.git.traits.GitLFSPullTrait plugin="git">
+              <extension class="hudson.plugins.git.extensions.impl.GitLFSPull"/>
+            </jenkins.plugins.git.traits.GitLFSPullTrait>
             <jenkins.scm.impl.trait.RegexSCMHeadFilterTrait>
               <regex>master|\d+\.\d+</regex>
             </jenkins.scm.impl.trait.RegexSCMHeadFilterTrait>
@@ -70,6 +83,11 @@
             <jenkins.plugins.git.traits.CleanBeforeCheckoutTrait>
               <extension class="hudson.plugins.git.extensions.impl.CleanBeforeCheckout"/>
             </jenkins.plugins.git.traits.CleanBeforeCheckoutTrait>
+            <jenkins.plugins.git.traits.UserIdentityTrait>
+              <extension class="hudson.plugins.git.extensions.impl.UserIdentity">
+                <email>no-reply@ci.example.com</email>
+              </extension>
+            </jenkins.plugins.git.traits.UserIdentityTrait>
             <jenkins.plugins.git.traits.CloneOptionTrait>
               <extension class="hudson.plugins.git.extensions.impl.CloneOption">
                 <shallow>true</shallow>
@@ -78,6 +96,7 @@
                 <timeout>100</timeout>
               </extension>
             </jenkins.plugins.git.traits.CloneOptionTrait>
+            <com.cloudbees.jenkins.plugins.bitbucket.notifications.SkipNotificationsTrait/>
             <jenkins.plugins.git.traits.SubmoduleOptionTrait>
               <extension class="hudson.plugins.git.extensions.impl.SubmoduleOption">
                 <disableSubmodules>false</disableSubmodules>
@@ -115,6 +134,23 @@
           </properties>
         </strategy>
         <buildStrategies>
+          <jenkins.branch.buildstrategies.basic.AllBranchBuildStrategyImpl plugin="basic-branch-build-strategies">
+            <strategies>
+              <jenkins.branch.buildstrategies.basic.BranchBuildStrategyImpl plugin="basic-branch-build-strategies"/>
+              <jenkins.branch.buildstrategies.basic.SkipInitialBuildOnFirstBranchIndexing plugin="basic-branch-build-strategies"/>
+            </strategies>
+          </jenkins.branch.buildstrategies.basic.AllBranchBuildStrategyImpl>
+          <jenkins.branch.buildstrategies.basic.AnyBranchBuildStrategyImpl plugin="basic-branch-build-strategies">
+            <strategies>
+              <jenkins.branch.buildstrategies.basic.ChangeRequestBuildStrategyImpl plugin="basic-branch-build-strategies">
+                <ignoreTargetOnlyChanges>false</ignoreTargetOnlyChanges>
+              </jenkins.branch.buildstrategies.basic.ChangeRequestBuildStrategyImpl>
+              <jenkins.branch.buildstrategies.basic.TagBuildStrategyImpl plugin="basic-branch-build-strategies">
+                <atMostMillis>-1</atMostMillis>
+                <atLeastMillis>-1</atLeastMillis>
+              </jenkins.branch.buildstrategies.basic.TagBuildStrategyImpl>
+            </strategies>
+          </jenkins.branch.buildstrategies.basic.AnyBranchBuildStrategyImpl>
           <jenkins.branch.buildstrategies.basic.TagBuildStrategyImpl plugin="basic-branch-build-strategies">
             <atMostMillis>86400000</atMostMillis>
             <atLeastMillis>604800000</atLeastMillis>
