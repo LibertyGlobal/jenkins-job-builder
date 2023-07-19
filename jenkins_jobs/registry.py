@@ -71,6 +71,9 @@ class ModuleRegistry(object):
             plugin_info["version"] = re.sub(
                 r"(.*)-(?:SNAPSHOT|BETA).*", r"\g<1>.preview", version
             )
+            # extract only semver compatible string from version string of plugins
+            # pkg.pkg_resources doesn't support modern version schemas
+            plugin_info["version"] = re.match(r'^([0-9])+(.[0-9]+){0,2}', plugin_info["version"]).group()
 
             aliases = []
             for key in ["longName", "shortName"]:
